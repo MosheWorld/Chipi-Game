@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play Chipi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card-container {
+            min-height: 100vh;
+        }
+
+        .error-message {
+            display: none;
+        }
+
+        .result-success {
+            font-size: 2rem;
+        }
+    </style>
+</head>
+
+<body class="bg-light d-flex flex-column justify-content-center align-items-center card-container">
+    <div class="position-absolute top-0 start-0 m-3">
+        <small class="text-secondary">הפוך</small>
+    </div>
+
+    <div class="card shadow p-4 w-50">
+        <h2 class="text-center text-primary mb-4">החידה</h2>
+        <p>חידה ראשונה: יש יום אחד שהוא יום מיוחד, יום קסום שבו אלוהים אמר שהעולם לא יוכל להתקיים בלי שיקרה משהו ביום הזה, מה זה היום הזה?</p>
+        <p>חידה שנייה: מה הפצופ שלך הכי אוהב בעולם אחרייך?</p>
+        <p class="hint-text text-muted small mb-5">* לרמזים לגבי החידה הראשונה נא לפנות לפצופ משרד, לרמזים לגבי החידה השנייה נא לפנות לפצופקלאוס</p>
+
+        <h2 class="text-center text-primary mb-4">פתרון חידות</h2>
+
+        <div class="mb-3">
+            <label for="textbox1" class="form-label">פתרון חידה 1:</label>
+            <input type="text" id="textbox1" class="form-control" placeholder="הכנס את התשובה כאן">
+        </div>
+
+        <div class="mb-3">
+            <label for="textbox2" class="form-label">פתרון חידה 2:</label>
+            <input type="text" id="textbox2" class="form-control" placeholder="הכנס את התשובה כאן">
+        </div>
+
+        <button id="checkButton" class="btn btn-primary w-100">בדוק תשובות</button>
+
+        <p id="result" class="mt-4 fw-bold text-center error-message"></p>
+    </div>
+
+    <script>
+        const checkButton = document.getElementById('checkButton');
+        const textbox1 = document.getElementById('textbox1');
+        const textbox2 = document.getElementById('textbox2');
+        const resultDisplay = document.getElementById('result');
+
+        const PUZZLE_RESULT_KEY = 'puzzleGameResult';
+
+        function saveResultToLocalStorage(key, result) {
+            localStorage.setItem(key, result);
+        }
+
+        function getResultFromLocalStorage(key) {
+            return localStorage.getItem(key);
+        }
+
+        function hideErrorMessage() {
+            resultDisplay.textContent = '';
+            resultDisplay.classList.add('error-message');
+        }
+
+        function checkPuzzleAnswers() {
+            const answer1 = textbox1.value.trim();
+            const answer2 = textbox2.value.trim();
+
+            if (answer1 === '5991.20.71' && answer2 === 'לכוא') {
+                const result = 'תתכונני לערב סושי שבוע הבא';
+                resultDisplay.textContent = result;
+                resultDisplay.className = 'mt-4 fw-bold text-center text-success result-success';
+                saveResultToLocalStorage(PUZZLE_RESULT_KEY, result);
+            } else {
+                resultDisplay.textContent = 'התשובות שגויות, נסי שוב!';
+                resultDisplay.className = 'mt-4 fw-bold text-center text-danger';
+            }
+            resultDisplay.classList.remove('error-message');
+        }
+
+        function initializeGame() {
+            const savedPuzzleResult = getResultFromLocalStorage(PUZZLE_RESULT_KEY);
+
+            if (savedPuzzleResult) {
+                resultDisplay.textContent = savedPuzzleResult;
+                resultDisplay.className = 'mt-4 fw-bold text-center text-success result-success';
+                resultDisplay.classList.remove('error-message');
+            }
+
+            checkButton.addEventListener('click', checkPuzzleAnswers);
+            textbox1.addEventListener('input', hideErrorMessage);
+            textbox2.addEventListener('input', hideErrorMessage);
+        }
+
+        initializeGame();
+    </script>
+</body>
+
+</html>
