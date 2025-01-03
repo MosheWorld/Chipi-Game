@@ -1,61 +1,223 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Play Chipi</title>
+    <title>Snake Game</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        .card-container {
-            min-height: 100vh;
+        body {
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
         }
 
-        .error-message {
+        .game-container {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 2px;
+            width: 320px;
+            height: 320px;
+            border: 4px solid #007bff;
+            background-color: #e6f7ff;
+            position: relative;
+        }
+
+        .corner-letters {
+            position: absolute;
+            font-size: 0.5rem;
+            color: #007bff;
+        }
+
+        .top-left {
+            top: -7px;
+            left: -4px;
+            color: #0dcaf0;
+        }
+
+        .top-right {
+            top: -7px;
+            right: -4px;
+            color: #0dcaf0;
+        }
+
+        .bottom-left {
+            bottom: -10px;
+            left: -10px;
+        }
+
+        .bottom-right {
+            bottom: -10px;
+            right: -10px;
+        }
+
+        .cell {
+            width: 100%;
+            height: 100%;
+            background-color: #f8f9fa;
+        }
+
+        .snake {
+            background-color: #28a745;
+        }
+
+        .apple {
+            background-color: #ff6347;
+        }
+
+        .arrow {
+            position: absolute;
+            bottom: -40px;
+            font-size: 1.5rem;
+            color: #007bff;
+        }
+
+        .result-message {
             display: none;
+            font-size: 2rem;
+            color: #28a745;
+            font-weight: bold;
         }
 
-        .result-success {
-            font-size: 2rem;
+        .start-button {
+            margin-top: 20px;
         }
     </style>
 </head>
 
-<body class="bg-light d-flex flex-column justify-content-center align-items-center card-container">
-    <div class="position-absolute top-0 start-0 m-3">
-        <small class="text-secondary">הפוך</small>
+<body>
+    <h2 class="text-primary mb-4">משחק הנחש</h2>
+    <div class="game-container" id="gameContainer">
+        <div class="corner-letters top-left">r</div>
+        <div class="corner-letters top-right">e</div>
+        <div class="corner-letters bottom-left">e</div>
+        <div class="corner-letters bottom-right">l</div>
+        <div class="arrow" id="directionArrow">⬆️</div>
     </div>
-
-    <div class="card shadow p-4 w-50">
-        <h2 class="text-center text-primary mb-4">החידה</h2>
-        <p>חידה ראשונה: יש יום אחד שהוא יום מיוחד, יום קסום שבו אלוהים אמר שהעולם לא יוכל להתקיים בלי שיקרה משהו ביום הזה, מה זה היום הזה?</p>
-        <p>חידה שנייה: מה הפצופ שלך הכי אוהב בעולם אחרייך?</p>
-        <p class="hint-text text-muted small mb-5">* לרמזים לגבי החידה הראשונה נא לפנות לפצופ משרד, לרמזים לגבי החידה השנייה נא לפנות לפצופקלאוס</p>
-
-        <h2 class="text-center text-primary mb-4">פתרון חידות</h2>
-
-        <div class="mb-3">
-            <label for="textbox1" class="form-label">פתרון חידה 1:</label>
-            <input type="text" id="textbox1" class="form-control" placeholder="הכנס את התשובה כאן">
-        </div>
-
-        <div class="mb-3">
-            <label for="textbox2" class="form-label">פתרון חידה 2:</label>
-            <input type="text" id="textbox2" class="form-control" placeholder="הכנס את התשובה כאן">
-        </div>
-
-        <button id="checkButton" class="btn btn-primary w-100">בדוק תשובות</button>
-
-        <p id="result" class="mt-4 fw-bold text-center error-message"></p>
-    </div>
+    <button class="btn btn-primary start-button" id="startButton">התחל משחק</button>
+    <p id="resultMessage" class="result-message">C9Kaqfwv3Pq</p>
 
     <script>
-        const checkButton = document.getElementById('checkButton');
-        const textbox1 = document.getElementById('textbox1');
-        const textbox2 = document.getElementById('textbox2');
-        const resultDisplay = document.getElementById('result');
+        const gridSize = 8;
+        const gameContainer = document.getElementById('gameContainer');
+        const resultMessage = document.getElementById('resultMessage');
+        const startButton = document.getElementById('startButton');
+        const directionArrow = document.getElementById('directionArrow');
 
-        const PUZZLE_RESULT_KEY = 'puzzleGameResult';
+        const SNAKE_GAME_RESULT_KEY = 'snakeGameResult';
+
+        let snake = [{ x: 2, y: 2 }];
+        let direction = { x: 0, y: -1 }; // Default direction: Up
+        let apple = { x: 1, y: 1 };
+        let gameInterval;
+
+        function createGrid() {
+            for (let i = 0; i < gridSize * gridSize; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                gameContainer.appendChild(cell);
+            }
+        }
+
+        function updateGrid() {
+            const cells = Array.from(document.querySelectorAll('.cell'));
+            cells.forEach(cell => cell.className = 'cell');
+
+            snake.forEach(segment => {
+                const index = segment.y * gridSize + segment.x;
+                cells[index].classList.add('snake');
+            });
+
+            const appleIndex = apple.y * gridSize + apple.x;
+            cells[appleIndex].classList.add('apple');
+        }
+
+
+        function moveSnake() {
+            const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+
+            if (head.x < 0 || head.x >= gridSize || head.y < 0 || head.y >= gridSize ||
+                snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+                gameOver();
+                return;
+            }
+
+            snake.unshift(head);
+
+            if (snake.length === gridSize * gridSize) {
+                winGame();
+                return;
+            }
+
+            if (head.x === apple.x && head.y === apple.y) {
+                placeApple();
+            } else {
+                snake.pop();
+            }
+
+            updateGrid();
+        }
+
+        function placeApple() {
+            let newApple;
+            do {
+                newApple = {
+                    x: Math.floor(Math.random() * gridSize),
+                    y: Math.floor(Math.random() * gridSize)
+                };
+            } while (snake.some(segment => segment.x === newApple.x && segment.y === newApple.y));
+            apple = newApple;
+        }
+
+        function gameOver() {
+            alert('Game Over! נסי שוב.');
+            clearInterval(gameInterval);
+            resetGame();
+            startButton.style.display = 'block';
+            startButton.textContent = 'התחל משחק';
+            startButton.disabled = false;
+        }
+
+        function winGame() {
+            resultMessage.style.display = 'block';
+            resultMessage.textContent = 'C9Kaqfwv3Pq';
+            saveResultToLocalStorage(SNAKE_GAME_RESULT_KEY, resultMessage.textContent);
+            clearInterval(gameInterval);
+            startButton.style.display = 'block';
+            startButton.textContent = 'התחל משחק';
+            startButton.disabled = false;
+        }
+
+        function resetGame() {
+            snake = [{ x: 2, y: 2 }];
+            direction = { x: 0, y: -1 };
+            placeApple();
+            resultMessage.style.display = 'none';
+            updateGrid();
+        }
+
+        function changeDirection(event) {
+            const { key } = event;
+            if (key === 'ArrowUp' && direction.y === 0) {
+                direction = { x: 0, y: -1 };
+                directionArrow.textContent = '⬆️';
+            } else if (key === 'ArrowDown' && direction.y === 0) {
+                direction = { x: 0, y: 1 };
+                directionArrow.textContent = '⬇️';
+            } else if (key === 'ArrowLeft' && direction.x === 0) {
+                direction = { x: -1, y: 0 };
+                directionArrow.textContent = '⬅️';
+            } else if (key === 'ArrowRight' && direction.x === 0) {
+                direction = { x: 1, y: 0 };
+                directionArrow.textContent = '➡️';
+            }
+        }
 
         function saveResultToLocalStorage(key, result) {
             localStorage.setItem(key, result);
@@ -65,42 +227,33 @@
             return localStorage.getItem(key);
         }
 
-        function hideErrorMessage() {
-            resultDisplay.textContent = '';
-            resultDisplay.classList.add('error-message');
+        function startGame() {
+            let countdown = 3;
+            startButton.disabled = true;
+            const countdownInterval = setInterval(() => {
+                startButton.textContent = countdown;
+                countdown--;
+                if (countdown < 0) {
+                    clearInterval(countdownInterval);
+                    startButton.style.display = 'none';
+                    gameInterval = setInterval(moveSnake, 500);
+                }
+            }, 1000);
         }
 
-        function checkPuzzleAnswers() {
-            const answer1 = textbox1.value.trim();
-            const answer2 = textbox2.value.trim();
+        document.addEventListener('keydown', changeDirection);
+        startButton.addEventListener('click', startGame);
 
-            if (answer1 === '5991.20.71' && answer2 === 'לכוא') {
-                const result = 'תתכונני לערב סושי שבוע הבא';
-                resultDisplay.textContent = result;
-                resultDisplay.className = 'mt-4 fw-bold text-center text-success result-success';
-                saveResultToLocalStorage(PUZZLE_RESULT_KEY, result);
-            } else {
-                resultDisplay.textContent = 'התשובות שגויות, נסי שוב!';
-                resultDisplay.className = 'mt-4 fw-bold text-center text-danger';
-            }
-            resultDisplay.classList.remove('error-message');
+        const storedResult = getResultFromLocalStorage(SNAKE_GAME_RESULT_KEY);
+        if (storedResult) {
+            resultMessage.textContent = storedResult;
+            resultMessage.style.display = 'block';
+            startButton.disabled = true;
         }
 
-        function initializeGame() {
-            const savedPuzzleResult = getResultFromLocalStorage(PUZZLE_RESULT_KEY);
-
-            if (savedPuzzleResult) {
-                resultDisplay.textContent = savedPuzzleResult;
-                resultDisplay.className = 'mt-4 fw-bold text-center text-success result-success';
-                resultDisplay.classList.remove('error-message');
-            }
-
-            checkButton.addEventListener('click', checkPuzzleAnswers);
-            textbox1.addEventListener('input', hideErrorMessage);
-            textbox2.addEventListener('input', hideErrorMessage);
-        }
-
-        initializeGame();
+        createGrid();
+        placeApple();
+        updateGrid();
     </script>
 </body>
 
